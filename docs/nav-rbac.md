@@ -4,7 +4,7 @@
 
 This document explains the fully client-side RBAC (Role-Based Access Control) system for navigation items.
 
-**Key Insight**: Navigation visibility is UX only, not security. We can check everything client-side using Clerk's hooks!
+**Key Insight**: Navigation visibility is UX only, not security. We can check everything client-side using our custom auth hooks!
 
 ## Architecture
 
@@ -16,7 +16,7 @@ This document explains the fully client-side RBAC (Role-Based Access Control) sy
 ### Why Client-Side?
 
 - **Navigation visibility is UX only** - Users can't bypass security by seeing/hiding nav items
-- **Clerk provides all data client-side** - `useOrganization()` gives us `membership.permissions` and `membership.role`
+- **Auth data is available client-side** - `useOrganization()` gives us `membership.role`
 - **Zero server calls** - Instant filtering, no loading states, no UI flashing
 - **Better performance** - No network latency, no async complexity
 
@@ -26,9 +26,9 @@ This document explains the fully client-side RBAC (Role-Based Access Control) sy
 
 ### All Checks Are Synchronous
 
-✅ **requireOrg**: Client-side check using `useOrganization()`  
-✅ **permission**: Client-side check using `membership.permissions` array  
-✅ **role**: Client-side check using `membership.role`  
+✅ **requireOrg**: Client-side check using `useOrganization()`
+✅ **permission**: Client-side check using membership permissions array
+✅ **role**: Client-side check using `membership.role`
 ⚠️ **plan/feature**: Requires server-side check (see below)
 
 ### Zero Server Calls
@@ -58,8 +58,9 @@ This document explains the fully client-side RBAC (Role-Based Access Control) sy
   // All client-side checks - instant!
   access: {
     requireOrg: true,
-    permission: 'org:admin:manage',  // Client-side from membership.permissions
-    role: 'admin'  // Client-side from membership.role
+    permission: 'org:admin:manage',
+    role: 'admin'
+  }
 }
 ```
 
@@ -76,19 +77,13 @@ function MyComponent() {
 
 ### Plan/Feature Checks
 
-Plans and features require Clerk's `has()` function which is server-side only. Options:
+Plans and features require server-side checks. Options:
 
 1. **Store in organization metadata** (recommended for navigation):
 
    ```typescript
-   // In your organization setup
-   organization.publicMetadata.plan = 'pro';
-
-   // In nav-config.ts
-   access: {
-     requireOrg: true,
-     // Check metadata instead of plan
-   }
+   // Store plan in your database
+   // Check at page level
    ```
 
 2. **Show item, protect at page level** (current approach):
@@ -123,45 +118,15 @@ The system automatically:
 
 ### Adding New Access Types
 
-1. Add to `PermissionCheck` interface in `src/app/actions/rbac.ts`
-2. Add check logic in `checkAccess()` function
-3. Update `use-nav.ts` to handle the new type
-
-## Comparison: Before vs After
-
-### Before (Overcomplicated)
-
-- 4 files with complex logic
-- Multiple hooks and utilities
-- Unclear data flow
-- Potential for bugs
-
-### After (Simplified)
-
-- 1 main hook file
-- Clear, linear logic
-- Easy to understand
-- Easy to maintain
+1. Add to `PermissionCheck` interface in `src/types/index.ts`
+2. Add check logic in `use-nav.ts`
+3. Update server-side checks as needed
 
 ## Best Practices
 
 1. **Use `requireOrg: true` for simple cases** - It's instant and requires no server call
 2. **Combine checks when possible** - `{ requireOrg: true, permission: '...' }` is more efficient than separate checks
 3. **Avoid unnecessary checks** - Don't add `access` if the item should always be visible
-
-## Migration from Old System
-
-The old `visible` function still works for backward compatibility:
-
-```typescript
-// Old way (still works)
-visible: (context) => !!context?.organization;
-
-// New way (recommended)
-access: {
-  requireOrg: true;
-}
-```
 
 ## Future Improvements
 

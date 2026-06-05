@@ -16,7 +16,7 @@ const ROOT = process.cwd();
 // ─── Templates (inline) ────────────────────────────────────────────
 
 const TEMPLATES = {
-  clerk: {
+  auth: {
     'src/app/page.tsx': `import { redirect } from 'next/navigation';
 
 export default async function Page() {
@@ -301,12 +301,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'img.clerk.com',
-        port: ''
-      },
-      {
-        protocol: 'https',
-        hostname: 'clerk.com',
+        hostname: 'api.slingacademy.com',
         port: ''
       }
     ]
@@ -407,8 +402,8 @@ export default function StatsError({ error, reset }: StatsErrorProps) {
 // ─── Feature Configuration ──────────────────────────────────────────
 
 const FEATURES = {
-  clerk: {
-    name: 'Clerk (Authentication, Organizations, Billing)',
+  auth: {
+    name: 'Auth (Authentication, Organizations, Billing)',
     folders: [
       'src/app/auth',
       'src/app/dashboard/workspaces',
@@ -419,23 +414,19 @@ const FEATURES = {
       'src/features/profile'
     ],
     files: [
-      'docs/clerk_setup.md',
+      'docs/auth_setup.md',
       'src/components/org-switcher.tsx',
       'src/components/user-avatar-profile.tsx'
     ],
-    dependencies: ['@clerk/nextjs', '@clerk/themes'],
+    dependencies: ['better-sqlite3'],
     envVars: [
-      'NEXTAUTH_SECRET',
-      'NEXTAUTH_URL',
-      'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
-      'CLERK_SECRET_KEY',
-      'NEXT_PUBLIC_CLERK_SIGN_IN_URL',
-      'NEXT_PUBLIC_CLERK_SIGN_UP_URL',
-      'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL',
-      'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL',
-      'WEBHOOK_SECRET'
+      'DINGTALK_APP_KEY',
+      'DINGTALK_APP_SECRET',
+      'DINGTALK_REDIRECT_URI',
+      'NEXT_PUBLIC_APP_URL',
+      'DATABASE_URL'
     ],
-    cleanNextConfig: true,
+    cleanNextConfig: false,
     navItemsToRemove: [
       '/dashboard/workspaces',
       '/dashboard/workspaces/team',
@@ -443,9 +434,9 @@ const FEATURES = {
       '/dashboard/profile',
       '/dashboard/exclusive'
     ],
-    templates: TEMPLATES.clerk,
+    templates: TEMPLATES.auth,
     replacements: {
-      'src/proxy.ts': `import { NextResponse } from 'next/server';
+      'src/middleware.ts': `import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function proxy(_req: NextRequest) {
@@ -747,20 +738,16 @@ class FeatureCleanup {
 
     let content = fs.readFileSync(configPath, 'utf8');
     const before = content;
-    // Remove Clerk image hostname entries (handles both comma-first and comma-after patterns)
+    // Remove any old image hostname entries (handles both comma-first and comma-after patterns)
     content = content.replace(
-      /,?\s*\{\s*protocol:\s*['"]https['"],\s*hostname:\s*['"]img\.clerk\.com['"][^}]*\},?/g,
-      ''
-    );
-    content = content.replace(
-      /,?\s*\{\s*protocol:\s*['"]https['"],\s*hostname:\s*['"]clerk\.com['"][^}]*\},?/g,
+      /,?\s*\{\s*protocol:\s*['"]https['"],\s*hostname:\s*['"][^'"]*['"][^}]*\},?/g,
       ''
     );
     // Clean up any trailing comma before closing bracket
     content = content.replace(/,(\s*\])/g, '$1');
     if (content !== before) {
       if (!this.dryRun) fs.writeFileSync(configPath, content, 'utf8');
-      this.log('✅ Cleaned next.config.ts (removed Clerk image hostnames)');
+      this.log('✅ Cleaned next.config.ts (removed old image hostnames)');
     }
   }
 
@@ -818,7 +805,7 @@ class FeatureCleanup {
     }
 
     // Clean up empty parent groups (items array with only whitespace)
-    content = content.replace(/,?\s*\{[^{}]*items:\s*\[\s*\]\s*\}/g, (match, offset) => {
+    content = content.replace(/,?\s*\{[^{}]*items:\s*\[\s*\]\s*\}/g, (match) => {
       // Only remove if it looks like a parent group (has url: '#')
       return match.includes("url: '#'") ? '' : match;
     });
@@ -874,7 +861,7 @@ class FeatureCleanup {
   }
 
   cleanDocReferences(feature) {
-    if (!feature.name.toLowerCase().includes('clerk')) return;
+    if (!feature.name.toLowerCase().includes('auth')) return;
 
     const docFiles = [
       path.join(ROOT, 'README.md'),
@@ -886,9 +873,7 @@ class FeatureCleanup {
       if (!fs.existsSync(filePath)) continue;
       let content = fs.readFileSync(filePath, 'utf8');
       const before = content;
-      content = content.replace(/\n*# Clerk Setup Guide[\s\S]*?(?=\n#|\n##|$)/gi, '\n');
-      content = content.replace(/Clerk['\s]/gi, 'Auth ');
-      content = content.replace(/clerk\.com[^\s]*/gi, '');
+      content = content.replace(/\n*# Authentication Setup Guide[\s\S]*?(?=\n#|\n##|$)/gi, '\n');
       if (content !== before) {
         if (!this.dryRun) {
           fs.writeFileSync(filePath, content.replace(/\n\s*\n\s*\n/g, '\n\n'), 'utf8');
@@ -1029,7 +1014,7 @@ Usage:
   node scripts/cleanup.js --interactive
 
 Examples:
-  node scripts/cleanup.js clerk
+  node scripts/cleanup.js auth
   node scripts/cleanup.js kanban chat       # remove multiple at once
   node scripts/cleanup.js --interactive     # interactive mode
   node scripts/cleanup.js --dry-run kanban  # preview without changing files

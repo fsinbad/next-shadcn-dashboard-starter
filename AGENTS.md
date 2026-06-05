@@ -12,7 +12,7 @@ This file provides essential information for AI coding agents working on this pr
 - **Language**: TypeScript 5.7
 - **Styling**: Tailwind CSS v4
 - **UI Components**: shadcn/ui (New York style)
-- **Authentication**: Clerk (with Organizations/Billing support)
+- **Authentication**: DingTalk OAuth 2.0 + SQLite local database (with Organizations support)
 - **Error Tracking**: Sentry
 - **Charts**: Recharts
 - **Containerization**: Docker (Node.js & Bun Dockerfiles)
@@ -53,9 +53,9 @@ The project follows a feature-based folder structure designed for scalability in
 
 ### Authentication & Authorization
 
-- Clerk for authentication and user management
-- Clerk Organizations for multi-tenant workspaces
-- Clerk Billing for subscription management (B2B)
+- DingTalk OAuth 2.0 for authentication
+- SQLite (better-sqlite3) for local user/organization/session storage
+- Custom organization support for multi-tenant workspaces
 - Client-side RBAC for navigation visibility
 
 ### Data & APIs
@@ -151,7 +151,7 @@ The project follows a feature-based folder structure designed for scalability in
     └── themes/            # Individual theme files
 
 /docs                      # Documentation
-│   ├── clerk_setup.md     # Clerk configuration guide
+│   ├── auth_setup.md      # Authentication configuration guide
 │   ├── nav-rbac.md        # Navigation RBAC documentation
 │   └── themes.md          # Theme customization guide
 
@@ -200,17 +200,20 @@ bun run prepare      # Install Husky hooks
 
 Copy `env.example.txt` to `.env.local` and configure:
 
-### Required for Authentication (Clerk)
+### Required for Authentication (DingTalk)
 
 ```env
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
-CLERK_SECRET_KEY=sk_...
+DINGTALK_APP_KEY=          # DingTalk AppKey
+DINGTALK_APP_SECRET=       # DingTalk AppSecret
+DINGTALK_REDIRECT_URI=     # Example: http://localhost:3000/api/auth/callback
 
-# Redirect URLs
-NEXT_PUBLIC_CLERK_SIGN_IN_URL="/auth/sign-in"
-NEXT_PUBLIC_CLERK_SIGN_UP_URL="/auth/sign-up"
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL="/dashboard/overview"
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/dashboard/overview"
+NEXT_PUBLIC_APP_URL=       # Example: http://localhost:3000
+```
+
+### Database Configuration
+
+```env
+DATABASE_URL=              # SQLite file path, defaults to ./data/app.db
 ```
 
 ### Optional for Error Tracking (Sentry)
@@ -223,7 +226,7 @@ SENTRY_AUTH_TOKEN=sntrys_...
 NEXT_PUBLIC_SENTRY_DISABLED="false"  # Set to "true" to disable in dev
 ```
 
-**Note**: Clerk supports "keyless mode" - the app works without API keys for initial development.
+**Note**: DingTalk OAuth requires valid credentials from the DingTalk Open Platform.
 
 ---
 
@@ -335,7 +338,7 @@ export const navGroups: NavGroup[] = [
 
 ### Client-Side Filtering
 
-The `useFilteredNavItems()` hook in `src/hooks/use-nav.ts` filters navigation client-side using Clerk's `useOrganization()` and `useUser()` hooks. This is for UX only - actual security checks must happen server-side.
+The `useFilteredNavItems()` hook in `src/hooks/use-nav.ts` filters navigation client-side using custom `useOrganization()` and `useUser()` hooks from `@/hooks/use-auth`. This is for UX only - actual security checks must happen server-side.
 
 ---
 
@@ -343,10 +346,10 @@ The `useFilteredNavItems()` hook in `src/hooks/use-nav.ts` filters navigation cl
 
 ### Protected Routes
 
-Dashboard routes use Clerk's middleware pattern. Pages that require organization:
+Dashboard routes use custom middleware that checks the `session_token` cookie. Pages that require organization:
 
 ```tsx
-import { auth } from '@clerk/nextjs';
+import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
 export default async function Page() {
@@ -358,23 +361,22 @@ export default async function Page() {
 
 ### Plan/Feature Protection
 
-Use Clerk's `<Protect>` component for client-side:
+Implement client-side plan checks using the auth context:
 
 ```tsx
-import { Protect } from '@clerk/nextjs';
+import { useOrganization } from '@/hooks/use-auth';
 
-<Protect plan='pro' fallback={<UpgradePrompt />}>
-  <PremiumContent />
-</Protect>;
+const { organization } = useOrganization();
+// Check organization.plan or similar field from your database
 ```
 
-Use `has()` function for server-side checks:
+For server-side checks:
 
 ```tsx
-import { auth } from '@clerk/nextjs';
+import { auth } from '@/lib/auth';
 
-const { has } = await auth();
-const hasFeature = has({ feature: 'premium_access' });
+const { org } = await auth();
+// Check org role or plan from your database
 ```
 
 ---
@@ -553,8 +555,10 @@ Recommended test locations:
 
 Ensure these are set in your deployment platform:
 
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
-- `CLERK_SECRET_KEY`
+- `DINGTALK_APP_KEY`
+- `DINGTALK_APP_SECRET`
+- `NEXT_PUBLIC_APP_URL`
+- `DATABASE_URL`
 - All `NEXT_PUBLIC_*` variables for client-side access
 - `SENTRY_*` variables if using error tracking
 
@@ -570,7 +574,7 @@ Both use `output: 'standalone'` in `next.config.ts`. Pass `NEXT_PUBLIC_*` vars a
 ### Build Considerations
 
 - Output: `standalone` (optimized for Docker/self-hosting)
-- Images: Configured for `api.slingacademy.com`, `img.clerk.com`, `clerk.com`
+- Images: Configured for `api.slingacademy.com`
 - Sentry source maps uploaded automatically in CI
 
 ---
@@ -584,7 +588,7 @@ A single `scripts/cleanup.js` file handles removal of optional features:
 node scripts/cleanup.js --interactive
 
 # Remove specific features
-node scripts/cleanup.js clerk           # Remove auth/org/billing
+node scripts/cleanup.js auth            # Remove auth/org/billing (legacy)
 node scripts/cleanup.js kanban          # Remove kanban board
 node scripts/cleanup.js chat            # Remove messaging UI
 node scripts/cleanup.js notifications   # Remove notification center
@@ -710,7 +714,7 @@ See "Theming System" section above or `docs/themes.md`.
 - Ensure using Tailwind CSS v4 syntax (`@import 'tailwindcss'`)
 - Check `postcss.config.js` uses `@tailwindcss/postcss`
 
-**Clerk keyless mode popup**
+**DingTalk OAuth setup**
 
 - Normal in development without API keys
 - Click popup to claim application or set env variables
@@ -730,7 +734,7 @@ See "Theming System" section above or `docs/themes.md`.
 ## External Documentation
 
 - [Next.js App Router](https://nextjs.org/docs/app)
-- [Clerk Next.js SDK](https://clerk.com/docs/references/nextjs)
+- [DingTalk Open Platform](https://open.dingtalk.com)
 - [shadcn/ui](https://ui.shadcn.com/docs)
 - [Tailwind CSS v4](https://tailwindcss.com/docs)
 - [TanStack Table](https://tanstack.com/table/latest)
