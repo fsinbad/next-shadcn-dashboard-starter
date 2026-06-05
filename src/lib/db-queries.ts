@@ -1,4 +1,4 @@
-import { getDb, generateId } from './db';
+import { prisma, generateId } from './db';
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -41,21 +41,15 @@ export interface DbSession {
 // ─── Users ───────────────────────────────────────────────────────────
 
 export async function findUserByDingTalkUnionId(unionId: string): Promise<DbUser | undefined> {
-  const db = getDb();
-  const result = await db.execute({
-    sql: 'SELECT * FROM users WHERE dingtalk_union_id = ? LIMIT 1',
-    args: [unionId]
+  const user = await prisma.user.findUnique({
+    where: { dingtalk_union_id: unionId }
   });
-  return (result.rows[0] as unknown as DbUser | undefined) ?? undefined;
+  return user ?? undefined;
 }
 
 export async function findUserById(id: string): Promise<DbUser | undefined> {
-  const db = getDb();
-  const result = await db.execute({
-    sql: 'SELECT * FROM users WHERE id = ? LIMIT 1',
-    args: [id]
-  });
-  return (result.rows[0] as unknown as DbUser | undefined) ?? undefined;
+  const user = await prisma.user.findUnique({ where: { id } });
+  return user ?? undefined;
 }
 
 export async function createUser(data: {
@@ -64,79 +58,46 @@ export async function createUser(data: {
   email?: string;
   avatar_url?: string;
 }): Promise<DbUser> {
-  const db = getDb();
-  const id = generateId();
   const now = Math.floor(Date.now() / 1000);
-
-  await db.execute({
-    sql: `INSERT INTO users (id, dingtalk_union_id, name, email, avatar_url, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    args: [
-      id,
-      data.dingtalk_union_id,
-      data.name ?? null,
-      data.email ?? null,
-      data.avatar_url ?? null,
-      now,
-      now
-    ]
+  return await prisma.user.create({
+    data: {
+      id: generateId(),
+      dingtalk_union_id: data.dingtalk_union_id,
+      name: data.name ?? null,
+      email: data.email ?? null,
+      avatar_url: data.avatar_url ?? null,
+      created_at: now,
+      updated_at: now
+    }
   });
-
-  return (await findUserById(id))!;
 }
 
 export async function updateUser(
   id: string,
   data: Partial<Pick<DbUser, 'name' | 'email' | 'avatar_url'>>
 ): Promise<DbUser> {
-  const db = getDb();
   const now = Math.floor(Date.now() / 1000);
-  const sets: string[] = [];
-  const values: (string | null | number)[] = [];
-
-  if (data.name !== undefined) {
-    sets.push('name = ?');
-    values.push(data.name);
-  }
-  if (data.email !== undefined) {
-    sets.push('email = ?');
-    values.push(data.email);
-  }
-  if (data.avatar_url !== undefined) {
-    sets.push('avatar_url = ?');
-    values.push(data.avatar_url);
-  }
-
-  sets.push('updated_at = ?');
-  values.push(now);
-  values.push(id);
-
-  await db.execute({
-    sql: `UPDATE users SET ${sets.join(', ')} WHERE id = ?`,
-    args: values
+  return await prisma.user.update({
+    where: { id },
+    data: {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.email !== undefined && { email: data.email }),
+      ...(data.avatar_url !== undefined && { avatar_url: data.avatar_url }),
+      updated_at: now
+    }
   });
-
-  return (await findUserById(id))!;
 }
 
 // ─── Organizations ───────────────────────────────────────────────────
 
 export async function findOrgById(id: string): Promise<DbOrganization | undefined> {
-  const db = getDb();
-  const result = await db.execute({
-    sql: 'SELECT * FROM organizations WHERE id = ? LIMIT 1',
-    args: [id]
-  });
-  return (result.rows[0] as unknown as DbOrganization | undefined) ?? undefined;
+  const org = await prisma.organization.findUnique({ where: { id } });
+  return org ?? undefined;
 }
 
 export async function findOrgBySlug(slug: string): Promise<DbOrganization | undefined> {
-  const db = getDb();
-  const result = await db.execute({
-    sql: 'SELECT * FROM organizations WHERE slug = ? LIMIT 1',
-    args: [slug]
-  });
-  return (result.rows[0] as unknown as DbOrganization | undefined) ?? undefined;
+  const org = await prisma.organization.findUnique({ where: { slug } });
+  return org ?? undefined;
 }
 
 export async function createOrg(data: {
@@ -144,17 +105,37 @@ export async function createOrg(data: {
   slug: string;
   logo_url?: string;
 }): Promise<DbOrganization> {
-  const db = getDb();
-  const id = generateId();
   const now = Math.floor(Date.now() / 1000);
-
-  await db.execute({
-    sql: `INSERT INTO organizations (id, name, slug, logo_url, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?)`,
-    args: [id, data.name, data.slug, data.logo_url ?? null, now, now]
+  return await prisma.organization.create({
+    data: {
+      id: generateId(),
+      name: data.name,
+      slug: data.slug,
+      logo_url: data.logo_url ?? null,
+      created_at: now,
+      updated_at: now
+    }
   });
+}
 
-  return (await findOrgById(id))!;
+export async function updateOrg(
+  id: string,
+  data: Partial<Pick<DbOrganization, 'name' | 'slug' | 'logo_url'>>
+): Promise<DbOrganization> {
+  const now = Math.floor(Date.now() / 1000);
+  return await prisma.organization.update({
+    where: { id },
+    data: {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.slug !== undefined && { slug: data.slug }),
+      ...(data.logo_url !== undefined && { logo_url: data.logo_url }),
+      updated_at: now
+    }
+  });
+}
+
+export async function deleteOrg(id: string): Promise<void> {
+  await prisma.organization.delete({ where: { id } });
 }
 
 // ─── Memberships ─────────────────────────────────────────────────────
@@ -162,28 +143,56 @@ export async function createOrg(data: {
 export async function findMembershipsByUserId(
   userId: string
 ): Promise<(DbMembership & { org_name: string; org_slug: string })[]> {
-  const db = getDb();
-  const result = await db.execute({
-    sql: `SELECT m.*, o.name as org_name, o.slug as org_slug
-          FROM memberships m
-          JOIN organizations o ON m.org_id = o.id
-          WHERE m.user_id = ?
-          ORDER BY m.created_at ASC`,
-    args: [userId]
+  const rows = await prisma.membership.findMany({
+    where: { user_id: userId },
+    include: { organization: true },
+    orderBy: { created_at: 'asc' }
   });
-  return result.rows as unknown as (DbMembership & { org_name: string; org_slug: string })[];
+  return rows.map((m) => ({
+    id: m.id,
+    user_id: m.user_id,
+    org_id: m.org_id,
+    role: m.role,
+    created_at: m.created_at,
+    updated_at: m.updated_at,
+    org_name: m.organization.name,
+    org_slug: m.organization.slug
+  }));
 }
 
 export async function findMembership(
   userId: string,
   orgId: string
 ): Promise<DbMembership | undefined> {
-  const db = getDb();
-  const result = await db.execute({
-    sql: 'SELECT * FROM memberships WHERE user_id = ? AND org_id = ? LIMIT 1',
-    args: [userId, orgId]
+  const m = await prisma.membership.findUnique({
+    where: { user_id_org_id: { user_id: userId, org_id: orgId } }
   });
-  return (result.rows[0] as unknown as DbMembership | undefined) ?? undefined;
+  return m ?? undefined;
+}
+
+export async function findOrgMembers(orgId: string): Promise<
+  (DbMembership & {
+    user_name: string | null;
+    user_email: string | null;
+    user_avatar: string | null;
+  })[]
+> {
+  const rows = await prisma.membership.findMany({
+    where: { org_id: orgId },
+    include: { user: true },
+    orderBy: [{ role: 'desc' }, { created_at: 'asc' }]
+  });
+  return rows.map((m) => ({
+    id: m.id,
+    user_id: m.user_id,
+    org_id: m.org_id,
+    role: m.role,
+    created_at: m.created_at,
+    updated_at: m.updated_at,
+    user_name: m.user.name,
+    user_email: m.user.email,
+    user_avatar: m.user.avatar_url
+  }));
 }
 
 export async function createMembership(data: {
@@ -191,21 +200,17 @@ export async function createMembership(data: {
   org_id: string;
   role?: string;
 }): Promise<DbMembership> {
-  const db = getDb();
-  const id = generateId();
   const now = Math.floor(Date.now() / 1000);
-
-  await db.execute({
-    sql: `INSERT INTO memberships (id, user_id, org_id, role, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?)`,
-    args: [id, data.user_id, data.org_id, data.role ?? 'member', now, now]
+  return await prisma.membership.create({
+    data: {
+      id: generateId(),
+      user_id: data.user_id,
+      org_id: data.org_id,
+      role: data.role ?? 'member',
+      created_at: now,
+      updated_at: now
+    }
   });
-
-  const result = await db.execute({
-    sql: 'SELECT * FROM memberships WHERE id = ? LIMIT 1',
-    args: [id]
-  });
-  return result.rows[0] as unknown as DbMembership;
 }
 
 // ─── Sessions ────────────────────────────────────────────────────────
@@ -216,64 +221,21 @@ export interface SessionWithUser {
 }
 
 export async function findSessionByToken(token: string): Promise<SessionWithUser | undefined> {
-  const db = getDb();
-  const result = await db.execute({
-    sql: `SELECT
-            s.id as session_id,
-            s.user_id as session_user_id,
-            s.token,
-            s.expires_at,
-            s.created_at as session_created_at,
-            u.id as user_id,
-            u.dingtalk_union_id,
-            u.name,
-            u.email,
-            u.avatar_url,
-            u.created_at as user_created_at,
-            u.updated_at as user_updated_at
-          FROM sessions s
-          JOIN users u ON s.user_id = u.id
-          WHERE s.token = ? AND s.expires_at > unixepoch()
-          LIMIT 1`,
-    args: [token]
+  const now = Math.floor(Date.now() / 1000);
+  const row = await prisma.session.findFirst({
+    where: { token, expires_at: { gt: now } },
+    include: { user: true }
   });
-
-  const row = result.rows[0] as unknown as
-    | {
-        session_id: string;
-        session_user_id: string;
-        token: string;
-        expires_at: number;
-        session_created_at: number;
-        user_id: string;
-        dingtalk_union_id: string;
-        name: string | null;
-        email: string | null;
-        avatar_url: string | null;
-        user_created_at: number;
-        user_updated_at: number;
-      }
-    | undefined;
-
   if (!row) return undefined;
-
   return {
     session: {
-      id: row.session_id,
-      user_id: row.session_user_id,
+      id: row.id,
+      user_id: row.user_id,
       token: row.token,
       expires_at: row.expires_at,
-      created_at: row.session_created_at
+      created_at: row.created_at
     },
-    user: {
-      id: row.user_id,
-      dingtalk_union_id: row.dingtalk_union_id,
-      name: row.name,
-      email: row.email,
-      avatar_url: row.avatar_url,
-      created_at: row.user_created_at,
-      updated_at: row.user_updated_at
-    }
+    user: row.user
   };
 }
 
@@ -282,40 +244,29 @@ export async function createSession(data: {
   token: string;
   expires_at: number;
 }): Promise<DbSession> {
-  const db = getDb();
-  const id = generateId();
   const now = Math.floor(Date.now() / 1000);
-
-  await db.execute({
-    sql: `INSERT INTO sessions (id, user_id, token, expires_at, created_at)
-          VALUES (?, ?, ?, ?, ?)`,
-    args: [id, data.user_id, data.token, data.expires_at, now]
+  return await prisma.session.create({
+    data: {
+      id: generateId(),
+      user_id: data.user_id,
+      token: data.token,
+      expires_at: data.expires_at,
+      created_at: now
+    }
   });
-
-  const result = await db.execute({
-    sql: 'SELECT * FROM sessions WHERE id = ? LIMIT 1',
-    args: [id]
-  });
-  return result.rows[0] as unknown as DbSession;
 }
 
 export async function deleteSessionByToken(token: string): Promise<void> {
-  const db = getDb();
-  await db.execute({
-    sql: 'DELETE FROM sessions WHERE token = ?',
-    args: [token]
-  });
+  await prisma.session.deleteMany({ where: { token } });
 }
 
 export async function deleteExpiredSessions(): Promise<void> {
-  const db = getDb();
-  await db.execute('DELETE FROM sessions WHERE expires_at <= unixepoch()');
+  const now = Math.floor(Date.now() / 1000);
+  await prisma.session.deleteMany({
+    where: { expires_at: { lte: now } }
+  });
 }
 
 export async function deleteUserSessions(userId: string): Promise<void> {
-  const db = getDb();
-  await db.execute({
-    sql: 'DELETE FROM sessions WHERE user_id = ?',
-    args: [userId]
-  });
+  await prisma.session.deleteMany({ where: { user_id: userId } });
 }
