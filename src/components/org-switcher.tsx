@@ -1,8 +1,7 @@
 'use client';
 
-import { useAuth, useOrganizationList } from '@clerk/nextjs';
+import { useAuth, useOrganizationList } from '@/hooks/use-auth';
 import { Icons } from '@/components/icons';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import {
@@ -20,26 +19,14 @@ import {
   SidebarMenuItem,
   useSidebar
 } from '@/components/ui/sidebar';
-import { useEffect } from 'react';
 
 export function OrgSwitcher() {
   const { isMobile, state } = useSidebar();
   const router = useRouter();
-  const { isLoaded, setActive, userMemberships } = useOrganizationList({
-    userMemberships: {
-      infinite: true,
-      keepPreviousData: false
-    }
-  });
-
+  const { isLoaded, setActive, userMemberships } = useOrganizationList();
   const { orgId } = useAuth();
 
-  useEffect(() => {
-    if (userMemberships?.revalidate) {
-      void userMemberships.revalidate();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only revalidate when org changes, not on every userMemberships ref change
-  }, [orgId]);
+  // Auth state is automatically refreshed when org changes via setActive
 
   // Get the currently active organization
   const activeOrganization = userMemberships?.data?.find(
@@ -136,17 +123,7 @@ export function OrgSwitcher() {
               className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
             >
               <div className='bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg'>
-                {displayOrganization.hasImage && displayOrganization.imageUrl ? (
-                  <Image
-                    src={displayOrganization.imageUrl}
-                    alt={displayOrganization.name}
-                    width={32}
-                    height={32}
-                    className='size-full object-cover'
-                  />
-                ) : (
-                  <Icons.galleryVerticalEnd className='size-4' />
-                )}
+                <Icons.galleryVerticalEnd className='size-4' />
               </div>
               <div
                 className={`grid flex-1 text-left text-sm leading-tight transition-all duration-200 ease-in-out ${
@@ -188,17 +165,7 @@ export function OrgSwitcher() {
                   className='gap-2 p-2'
                 >
                   <div className='flex size-6 items-center justify-center overflow-hidden rounded-md border'>
-                    {membership.organization.hasImage && membership.organization.imageUrl ? (
-                      <Image
-                        src={membership.organization.imageUrl}
-                        alt={membership.organization.name}
-                        width={24}
-                        height={24}
-                        className='size-full object-cover'
-                      />
-                    ) : (
-                      <Icons.galleryVerticalEnd className='size-3.5 shrink-0' />
-                    )}
+                    <Icons.galleryVerticalEnd className='size-3.5 shrink-0' />
                   </div>
                   {membership.organization.name}
                   {isActive && <Icons.check className='ml-auto size-4' />}

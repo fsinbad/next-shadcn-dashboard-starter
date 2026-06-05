@@ -1,10 +1,10 @@
 import { buttonVariants } from '@/components/ui/button';
 import { GitHubStarsButton } from '@/components/github-stars-button';
 import { cn } from '@/lib/utils';
-import { SignIn as ClerkSignInForm } from '@clerk/nextjs';
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { InteractiveGridPattern } from './interactive-grid';
+import { Icons } from '@/components/icons';
 
 export const metadata: Metadata = {
   title: 'Authentication',
@@ -66,18 +66,26 @@ export default function SignInViewPage() {
             variant='outline'
             size='default'
           />
-          <ClerkSignInForm
-            initialValues={{
-              emailAddress: 'your_mail+clerk_test@example.com'
-            }}
-          />
+
+          <div className='flex w-full flex-col items-center gap-4'>
+            <h2 className='text-2xl font-semibold tracking-tight'>Welcome back</h2>
+            <p className='text-muted-foreground text-sm'>Sign in to your account to continue</p>
+            <a
+              href='/api/auth/dingtalk'
+              className={cn(buttonVariants({ variant: 'default', size: 'lg' }), 'w-full gap-2')}
+            >
+              <Icons.login className='h-4 w-4' />
+              Login with DingTalk
+            </a>
+          </div>
+
           <div className='text-muted-foreground space-y-2 px-8 text-center text-xs'>
             <p>
               This is an{' '}
               <Link href='/about' className='hover:text-primary underline underline-offset-4'>
                 open-source project
               </Link>{' '}
-              for demo purposes. Authentication is handled securely by Clerk.
+              for demo purposes. Authentication is handled via DingTalk OAuth.
             </p>
             <p>
               <Link

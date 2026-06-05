@@ -10,11 +10,14 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { UserAvatarProfile } from '@/components/user-avatar-profile';
-import { SignOutButton, useUser } from '@clerk/nextjs';
+import { SignOutButton } from '@/components/auth/sign-out-button';
+import { useUser } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
+
 export function UserNav() {
   const { user } = useUser();
   const router = useRouter();
+
   if (user) {
     return (
       <DropdownMenu>
@@ -26,10 +29,8 @@ export function UserNav() {
         <DropdownMenuContent className='w-56' align='end' sideOffset={10} forceMount>
           <DropdownMenuLabel className='font-normal'>
             <div className='flex flex-col space-y-1'>
-              <p className='text-sm leading-none font-medium'>{user.fullName}</p>
-              <p className='text-muted-foreground text-xs leading-none'>
-                {user.emailAddresses[0].emailAddress}
-              </p>
+              <p className='text-sm leading-none font-medium'>{user.name}</p>
+              <p className='text-muted-foreground text-xs leading-none'>{user.email}</p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -43,7 +44,7 @@ export function UserNav() {
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem>
-            <SignOutButton redirectUrl='/auth/sign-in' />
+            <SignOutButton />
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

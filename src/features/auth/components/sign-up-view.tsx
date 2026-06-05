@@ -1,9 +1,8 @@
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { SignUp as ClerkSignUpForm } from '@clerk/nextjs';
 import { GitHubLogoIcon } from '@radix-ui/react-icons';
 import { Icons } from '@/components/icons';
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { InteractiveGridPattern } from './interactive-grid';
 
@@ -77,18 +76,28 @@ export default function SignUpViewPage({ stars }: { stars: number }) {
               <span className='font-display font-medium'>{stars}</span>
             </div>
           </Link>
-          <ClerkSignUpForm
-            initialValues={{
-              emailAddress: 'your_mail+clerk_test@example.com'
-            }}
-          />
+
+          <div className='flex w-full flex-col items-center gap-4'>
+            <h2 className='text-2xl font-semibold tracking-tight'>Create an account</h2>
+            <p className='text-muted-foreground text-sm'>
+              Sign up with your DingTalk account to get started
+            </p>
+            <a
+              href='/api/auth/dingtalk'
+              className={cn(buttonVariants({ variant: 'default', size: 'lg' }), 'w-full gap-2')}
+            >
+              <Icons.login className='h-4 w-4' />
+              Sign up with DingTalk
+            </a>
+          </div>
+
           <div className='text-muted-foreground space-y-2 px-8 text-center text-xs'>
             <p>
               This is an{' '}
               <Link href='/about' className='hover:text-primary underline underline-offset-4'>
                 open-source project
               </Link>{' '}
-              for demo purposes. Authentication is handled securely by Clerk.
+              for demo purposes. Authentication is handled via DingTalk OAuth.
             </p>
             <p>
               <Link

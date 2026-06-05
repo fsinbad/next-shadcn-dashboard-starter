@@ -2,8 +2,7 @@
 
 import PageContainer from '@/components/layout/page-container';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useOrganization } from '@clerk/nextjs';
-import { PricingTable } from '@clerk/nextjs';
+import { useOrganization } from '@/hooks/use-auth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Icons } from '@/components/icons';
 import { billingInfoContent } from '@/config/infoconfig';
@@ -34,20 +33,58 @@ export default function BillingPage() {
         <Alert>
           <Icons.info className='h-4 w-4' />
           <AlertDescription>
-            Plans and subscriptions are managed through Clerk Billing. Subscribe to a plan to unlock
-            features and higher limits.
+            Billing is not configured. Connect your own payment provider (e.g., Stripe) to enable
+            subscription management.
           </AlertDescription>
         </Alert>
 
-        {/* Clerk Pricing Table */}
+        {/* Placeholder Pricing */}
         <Card>
           <CardHeader>
             <CardTitle>Available Plans</CardTitle>
             <CardDescription>Choose a plan that fits your organization's needs</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className='mx-auto max-w-4xl'>
-              <PricingTable for='organization' />
+            <div className='grid gap-4 md:grid-cols-3'>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Free</CardTitle>
+                  <CardDescription>$0 / month</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className='text-muted-foreground space-y-2 text-sm'>
+                    <li>Up to 3 members</li>
+                    <li>Basic features</li>
+                    <li>Community support</li>
+                  </ul>
+                </CardContent>
+              </Card>
+              <Card className='border-primary'>
+                <CardHeader>
+                  <CardTitle>Pro</CardTitle>
+                  <CardDescription>$29 / month</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className='text-muted-foreground space-y-2 text-sm'>
+                    <li>Unlimited members</li>
+                    <li>Advanced features</li>
+                    <li>Priority support</li>
+                  </ul>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Enterprise</CardTitle>
+                  <CardDescription>Custom pricing</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className='text-muted-foreground space-y-2 text-sm'>
+                    <li>Dedicated infrastructure</li>
+                    <li>SSO / SAML</li>
+                    <li>SLA guarantee</li>
+                  </ul>
+                </CardContent>
+              </Card>
             </div>
           </CardContent>
         </Card>

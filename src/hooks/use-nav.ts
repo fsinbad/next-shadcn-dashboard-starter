@@ -3,7 +3,7 @@
 /**
  * Fully client-side hook for filtering navigation items based on RBAC
  *
- * This hook uses Clerk's client-side hooks to check permissions, roles, and organization
+ * This hook uses custom auth hooks to check permissions, roles, and organization
  * without any server calls. This is perfect for navigation visibility (UX only).
  *
  * Performance:
@@ -17,7 +17,7 @@
  */
 
 import { useMemo } from 'react';
-import { useOrganization, useUser } from '@clerk/nextjs';
+import { useOrganization, useUser } from '@/hooks/use-auth';
 import type { NavItem, NavGroup } from '@/types';
 
 /**
@@ -32,18 +32,21 @@ export function useFilteredNavItems(items: NavItem[]) {
 
   // Memoize context and permissions
   const accessContext = useMemo(() => {
-    const permissions = membership?.permissions || [];
-    const role = membership?.role;
-
+    const role = membership?.role ?? undefined;
+    // Derive permissions from role for navigation filtering
+    const permissions: string[] = [];
+    if (role === 'admin') {
+      permissions.push('org:admin:manage', 'org:teams:manage');
+    }
     return {
       organization: organization ?? undefined,
       user: user ?? undefined,
-      permissions: permissions as string[],
-      role: role ?? undefined,
+      permissions,
+      role,
       hasOrg: !!organization
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- using stable primitives to avoid infinite re-renders from unstable Clerk object refs
-  }, [organization?.id, user?.id, membership?.permissions, membership?.role]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- using stable primitives to avoid infinite re-renders from unstable object refs
+  }, [organization?.id, user?.id, membership?.role]);
 
   // Filter items synchronously (all client-side)
   const filteredItems = useMemo(() => {
@@ -79,7 +82,7 @@ export function useFilteredNavItems(items: NavItem[]) {
           }
         }
 
-        // Note: Plans and features require server-side checks with Clerk's has() function
+        // Note: Plans and features require server-side checks
         // For navigation visibility, you can either:
         // 1. Store plan/feature info in organization metadata (client-accessible)
         // 2. Use server actions (current approach)

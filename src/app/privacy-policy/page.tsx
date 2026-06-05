@@ -1,4 +1,4 @@
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
@@ -36,31 +36,14 @@ export default function PrivacyPolicyPage() {
           </p>
         </section>
 
-        {/* Auth handled by Clerk */}
+        {/* Auth handled by DingTalk OAuth */}
         <section>
-          <h2 className='text-foreground mb-3 text-xl font-semibold'>Authentication by Clerk</h2>
+          <h2 className='text-foreground mb-3 text-xl font-semibold'>Authentication</h2>
           <p className='text-muted-foreground text-base leading-relaxed'>
-            Our application uses{' '}
-            <a
-              href='https://clerk.com'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-primary font-medium hover:underline'
-            >
-              Clerk
-            </a>{' '}
-            to handle user authentication securely. All authentication processes, including sign-up,
-            sign-in, and password management, are managed by Clerk. For detailed information about
-            how Clerk processes and protects your data, please review their{' '}
-            <a
-              href='https://clerk.com/legal/privacy'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-primary font-medium hover:underline'
-            >
-              Privacy Policy
-            </a>
-            .
+            Our application uses DingTalk OAuth 2.0 for authentication. Basic profile information
+            such as your name and email is stored in a local SQLite database for session management
+            and workspace access. For detailed information about how DingTalk processes your data,
+            please review their privacy policy.
           </p>
         </section>
 

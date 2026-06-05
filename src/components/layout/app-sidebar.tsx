@@ -27,9 +27,9 @@ import {
 import { UserAvatarProfile } from '@/components/user-avatar-profile';
 import { navGroups } from '@/config/nav-config';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { useOrganization, useUser } from '@clerk/nextjs';
+import { useUser, useOrganization } from '@/hooks/use-auth';
 import { useFilteredNavGroups } from '@/hooks/use-nav';
-import { SignOutButton } from '@clerk/nextjs';
+import { SignOutButton } from '@/components/auth/sign-out-button';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -158,7 +158,7 @@ export default function AppSidebar() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <Icons.logout className='mr-2 h-4 w-4' />
-                  <SignOutButton redirectUrl='/auth/sign-in' />
+                  <SignOutButton />
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
