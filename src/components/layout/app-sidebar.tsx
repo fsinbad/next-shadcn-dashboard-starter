@@ -29,7 +29,7 @@ import { navGroups } from '@/config/nav-config';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useUser, useOrganization } from '@/hooks/use-auth';
 import { useFilteredNavGroups } from '@/hooks/use-nav';
-import { SignOutButton } from '@/components/auth/sign-out-button';
+import { useAuthContext } from '@/components/auth/auth-provider';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -41,6 +41,7 @@ export default function AppSidebar() {
   const { isOpen } = useMediaQuery();
   const { user } = useUser();
   const { organization } = useOrganization();
+  const { signOut } = useAuthContext();
   const router = useRouter();
   const filteredGroups = useFilteredNavGroups(navGroups);
 
@@ -156,9 +157,9 @@ export default function AppSidebar() {
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => signOut()}>
                   <Icons.logout className='mr-2 h-4 w-4' />
-                  <SignOutButton />
+                  Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -10,12 +10,13 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { UserAvatarProfile } from '@/components/user-avatar-profile';
-import { SignOutButton } from '@/components/auth/sign-out-button';
+import { useAuthContext } from '@/components/auth/auth-provider';
 import { useUser } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 
 export function UserNav() {
   const { user } = useUser();
+  const { signOut } = useAuthContext();
   const router = useRouter();
 
   if (user) {
@@ -43,9 +44,7 @@ export function UserNav() {
             <DropdownMenuItem>New Team</DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <SignOutButton />
-          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => signOut()}>Sign out</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     );
